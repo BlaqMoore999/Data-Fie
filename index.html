@@ -17,7 +17,15 @@
       background-image: url('background.png');
       background-size: cover;
       color: black;
+      overflow: hidden;
+      animation: moveBackground 5s linear infinite;
     }
+
+    @keyframes moveBackground {
+            0% { background-position: 0 0; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0 0; }
+        }
 
     #paymentForm {
       background: rgba(0, 0, 0, 0.534);
@@ -83,11 +91,11 @@
     }
 
      .top-logo {
-      position: absolute;
-      left: -100px;
+      position: fixed;
+      left: 20px;
       top: -75px;
       height: 40px;
-      width: auto;
+      width: 60%;
       }
 
   </style>
