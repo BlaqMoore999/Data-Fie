@@ -196,12 +196,32 @@ function renderTable(data) {
 
   for (let i = 1; i < data.length; i++) {
     html += "<tr>";
-    data[i].forEach(cell => html += `<td>${cell}</td>`);
+    data[i].forEach(cell => html += `<td>${formatCell(cell)}</td>`);
     html += "</tr>";
   }
 
   html += "</tbody></table>";
   container.innerHTML = html;
+}
+
+function formatCell(cell) {
+  let date;
+  if (typeof cell === 'number') {
+    // Assume Google Sheets serial date (days since 1899-12-30)
+    date = new Date((cell - 25569) * 86400000);
+  } else if (typeof cell === 'string') {
+    date = new Date(cell);
+  }
+
+  if (date && !isNaN(date.getTime())) {
+    // Check if it's a reasonable date (not too far in past/future)
+    const now = new Date();
+    const diff = Math.abs(now - date);
+    if (diff < 365 * 24 * 60 * 60 * 1000 * 10) { // Within 10 years
+      return date.toLocaleString();
+    }
+  }
+  return cell;
 }
 
 function downloadExcel() {

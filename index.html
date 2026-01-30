@@ -92,10 +92,27 @@
 
      .top-logo {
       position: fixed;
-      left: 20px;
-      top: -75px;
-      height: 40px;
-      width: 60%;
+      left: 50%;
+      top: 150px;
+      height: 70px;
+      width: auto;
+      max-width: 250px;
+      transform: translateX(-50%);
+      z-index: 10;
+      border: 3px solid #ffd700;
+      border-radius: 15px;
+      padding: 10px;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+      box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      }
+
+     .logo-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: brightness(1.1) contrast(1.2) saturate(1.1) drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+      border-radius: 10px;
       }
 
   </style>
@@ -105,20 +122,22 @@
 
   <!--logo-->
   <div class="top-logo">
-    <img src="logo.png" alt="Data-Fie Logo">
+    <img src="logo.png" alt="Data-Fie Logo" class="logo-image">
   </div>
 
 
   <form id="paymentForm" action="https://script.google.com/macros/s/AKfycbwV0HesZ9mQJZqOToqrfJ1D1FUidGSzXFUI_R-nbWHxqXa-Ab8MuJLrcRJY5mSM4a5q0A/exec" method="POST" enctype="multipart/form-data">
-    <input type="hidden" value="MTN" />
+    <input type="hidden" name="sheet" value="MTN" />
+    <input type="hidden" id="generatedEmail" name="Email" />
     <h2 id="mtn-heading">DATA</h2>
     <h2 class="form-text">- FIE</h2>
+<input type="hidden" id="timestamp" name="Timestamp">
 
     <label for="phoneNumber">Customer Numbers:</label>
     <input type="tel" id="phoneNumber" name="NUMBER" required placeholder="e.g., 0234567890"><br>
 
     <label for="bundle">Select Packages:</label>
-    <select id="bundle" name="Packages (GB)">
+    <select id="bundle" name="Packages (GB)" required>
       <option value="0">Select Here</option>
       <option value="1">1GB - GHS5.0</option>
       <option value="2">2GB - GHS10.0</option>
@@ -145,73 +164,130 @@
   <script src="https://js.paystack.co/v1/inline.js"></script>
 
   <script>
-    var prices = {
-      "1": 5.50,
-      "2": 10.50,
-      "3": 14.00,
-      "4": 19.00,
-      "5": 24.50,
-      "6": 30.50,
-      "7": 35.50,
-      "8": 39.50,
-      "10": 48.50,
-      "12": 58.50,
-      "15": 75.50,
-      "20": 90.50,
-      "25": 121.00,
-      "30": 130.0,
-      "40": 167.0,
-      "50": 187.50
-    };
+  var prices = {
+    "1": 5.00,
+    "2": 10.50,
+    "3": 14.00,
+    "4": 19.00,
+    "5": 24.50,
+    "6": 30.50,
+    "7": 35.50,
+    "8": 39.50,
+    "10": 48.50,
+    "12": 58.50,
+    "15": 75.50,
+    "20": 90.50,
+    "25": 121.00,
+    "30": 130.00,
+    "40": 167.00,
+    "50": 187.50
+  };
 
-    document.getElementById("paymentForm").addEventListener("submit", function (event) {
+  function generateRandomEmail() {
+    const randomString =
+      Math.random().toString(36).substring(2, 10) +
+      Math.random().toString(36).substring(2, 6);
+    return "user-" + randomString + "@gmail.com";
+  }
+
+  document
+    .getElementById("paymentForm")
+    .addEventListener("submit", function (event) {
       event.preventDefault();
+
+      // Timestamp
+      document.getElementById("timestamp").value =
+        new Date().toISOString();
+
+      // Generate email
+      const generatedEmail = generateRandomEmail();
+      document.getElementById("generatedEmail").value = generatedEmail;
 
       var phoneNumber = document.getElementById("phoneNumber").value;
       var selectedBundle = document.getElementById("bundle").value;
 
-      if (!(selectedBundle in prices)) {
+      if (!prices[selectedBundle]) {
         Swal.fire("Error", "Please select a valid package.", "error");
         return;
       }
 
-      var amount = prices[selectedBundle] * 100; // Paystack expects amount in Kobo
+      // Paystack uses pesewas in Ghana
+      var amount = prices[selectedBundle] * 100;
 
       var handler = PaystackPop.setup({
-        key: 'pk_live_ed1243b2a5430c54b48c055d631c22055e1ebb43',
-        email: "no-reply@data-fie.com",
+        key: "pk_live_ed1243b2a5430c54b48c055d631c22055e1ebb43",
+        email: generatedEmail,
         amount: amount,
-        currency: 'GHS',
-        ref: 'DATA-FIE-' + Math.floor((Math.random() * 1000000000) + 1),
+        currency: "GHS",
+        ref: "DATA-FIE-" + Math.floor(Math.random() * 1000000000 + 1),
+
         metadata: {
-          custom_fields: [{
-            display_name: "Phone Number",
-            variable_name: "phone_number",
-            value: phoneNumber
-          }]
+          custom_fields: [
+            {
+              display_name: "Phone Number",
+              variable_name: "phone_number",
+              value: phoneNumber,
+            },
+          ],
         },
+
         callback: function (response) {
           var form = event.target;
           var formData = new FormData(form);
 
           fetch(form.action, {
             method: "POST",
-            body: formData
+            body: formData,
           })
             .then(() => {
-              Swal.fire("Payment Successful!", "Best Regard Data-Fie", "success");
+              // Admin SMS
+              const smsData = {
+                recipient: ["0552483624"],
+                sender: "D-Fie 101",
+                message:
+                  `New payment received!\n` +
+                  `Phone: ${phoneNumber}\n` +
+                  `Bundle: ${selectedBundle}GB\n` +
+                  `Ref: ${response.reference}`,
+              };
+
+              return fetch(
+                "https://api.mnotify.com/api/sms/quick?key=JH2tzvJmiEKtKqgUI9mUpFDI7",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(smsData),
+                }
+              );
+            })
+            .then(() => {
+              Swal.fire(
+                "Payment Successful!",
+                "Best Regard Data-Fie",
+                "success"
+              );
             })
             .catch(() => {
-              Swal.fire("Error", "Failed to submit to Google Sheet.", "error");
+              Swal.fire(
+                "Error",
+                "Failed to submit to Google Sheet.",
+                "error"
+              );
             });
         },
+
         onClose: function () {
-          Swal.fire("Payment Cancelled", "You closed the window.", "info");
-        }
+          Swal.fire(
+            "Payment Cancelled",
+            "You closed the window.",
+            "info"
+          );
+        },
       });
 
       handler.openIframe();
     });
-  </script>
+</script>
+
 </body>
 </html>
