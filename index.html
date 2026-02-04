@@ -63,6 +63,7 @@
 
     input[type="tel"],
     input[type="text"],
+    input[type="email"],
     select {
       width: calc(100% - 20px);
       padding: 10px;
@@ -133,6 +134,9 @@
     <h2 class="form-text">- FIE</h2>
 <input type="hidden" id="timestamp" name="Timestamp">
 
+<label for="Email">Customer Email:</label>
+    <input type="email" id="customerEmail" name="Email" required placeholder="e.g., user@example.com"><br>
+
     <label for="phoneNumber">Customer Numbers:</label>
     <input type="tel" id="phoneNumber" name="NUMBER" required placeholder="e.g., 0234567890"><br>
 
@@ -167,7 +171,7 @@
   var prices = {
     "1": 5.00,
     "2": 10.50,
-    "3": 14.00,
+    "3": 15.00,
     "4": 19.00,
     "5": 24.50,
     "6": 30.50,
@@ -183,13 +187,6 @@
     "50": 187.50
   };
 
-  function generateRandomEmail() {
-    const randomString =
-      Math.random().toString(36).substring(2, 10) +
-      Math.random().toString(36).substring(2, 6);
-    return "user-" + randomString + "@gmail.com";
-  }
-
   document
     .getElementById("paymentForm")
     .addEventListener("submit", function (event) {
@@ -200,11 +197,16 @@
         new Date().toISOString();
 
       // Generate email
-      const generatedEmail = generateRandomEmail();
-      document.getElementById("generatedEmail").value = generatedEmail;
+      
+     var phoneNumber = document.getElementById("phoneNumber").value;
+var selectedBundle = document.getElementById("bundle").value;
+var email = document.getElementById("customerEmail").value;
 
-      var phoneNumber = document.getElementById("phoneNumber").value;
-      var selectedBundle = document.getElementById("bundle").value;
+if (!email || !email.includes("@")) {
+  Swal.fire("Error", "Please enter a valid email address.", "error");
+  return;
+}
+
 
       if (!prices[selectedBundle]) {
         Swal.fire("Error", "Please select a valid package.", "error");
@@ -216,7 +218,7 @@
 
       var handler = PaystackPop.setup({
         key: "pk_live_ed1243b2a5430c54b48c055d631c22055e1ebb43",
-        email: generatedEmail,
+        email: email,
         amount: amount,
         currency: "GHS",
         ref: "DATA-FIE-" + Math.floor(Math.random() * 1000000000 + 1),
